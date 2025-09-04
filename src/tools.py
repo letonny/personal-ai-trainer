@@ -1,29 +1,33 @@
-from langchain_community.tools import WikipediaQueryRun, DuckDuckGoSearchRun
-from langchain_community.utilities import WikipediaAPIWrapper
-from langchain.tools import Tool
-from datetime import datetime
+from langchain_core.tools import tool
+import json
 
-def save_to_txt(data: str, filename: str = "research_output.txt"):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    formatted_text = f"--- Research Output ---\nTimestamp: {timestamp}\n\n{data}\n\n"
+# The AI agent can choose to use any of these functions when it needs them.
+# The docstring for each function is very important, as it tells the AI what the tool does.
 
-    with open(filename, "a", encoding="utf-8") as f:
-        f.write(formatted_text)
+@tool
+def search_tool(query: str) -> str:
+    """
+    Use this tool to search for up-to-date information on exercises, fitness concepts,
+    or nutrition. It's useful for when you need to verify exercise form or find new workout ideas.
+    """
+    print(f"--> [Tool Called] Searching for: '{query}'...")
+    # In a real application, this would call a search API (like Google Search).
+    # For this example, we'll return a placeholder string.
+    return f"Search results for '{query}': (Placeholder) The bench press is a compound exercise that targets the pectoralis major..."
 
-    return f"Data successfully saved to {filename}"
-
-save_tool = Tool(
-    name="save_text_to_file",
-    func=save_to_txt,
-    description="Saves structured research data to a text file.",
-)
-
-search = DuckDuckGoSearchRun()
-search_tool = Tool(
-    name="search",
-    func=search.run,
-    description="Search the web for information",
-)
-
-api_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=100)
-wiki_tool = WikipediaQueryRun(api_wrapper=api_wrapper)
+@tool
+def save_workout_plan(plan: str, filename: str) -> str:
+    """
+    Use this tool to save the generated workout plan as a JSON file.
+    The 'plan' should be a valid JSON string.
+    The 'filename' should be a descriptive name ending in .json.
+    """
+    print(f"--> [Tool Called] Saving workout plan to '{filename}'...")
+    try:
+        # The AI will pass the plan as a string, so we parse it back into a dict
+        workout_data = json.loads(plan)
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(workout_data, f, indent=4)
+        return f"Successfully saved the workout plan to '{filename}'."
+    except Exception as e:
+        return f"Error: Could not save the file. Reason: {e}"
