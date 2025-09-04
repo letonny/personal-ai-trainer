@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<!--suppress ALL -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pulse - AI Personal Trainer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        /* A simple scrollbar style */
         #chat-view::-webkit-scrollbar {
             width: 8px;
         }
@@ -71,7 +70,6 @@
                 opacity: 0;
             }
         }
-        /* TailwindCSS class for screen-reader only elements */
         .sr-only {
             position: absolute;
             width: 1px;
@@ -83,14 +81,23 @@
             white-space: nowrap;
             border-width: 0;
         }
+        /* Styling for paragraphs and lists inside AI messages */
+        .ai-message-content p {
+            margin-bottom: 0.5rem;
+        }
+        .ai-message-content ol {
+            list-style-type: decimal;
+            padding-left: 1.5rem;
+        }
+        .ai-message-content li {
+            margin-bottom: 0.25rem;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen font-sans">
 
-<!-- Main Application Container -->
 <div id="app-container" class="w-full max-w-2xl h-full sm:h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col p-6">
 
-    <!-- Onboarding View (Initially Visible) -->
     <div id="onboarding-view" class="flex flex-col items-center justify-center h-full text-center">
         <h1 class="text-4xl font-bold text-gray-800">Welcome to Pulse! ⚡️</h1>
         <p class="text-gray-600 mt-4">Before we start, let me get some basic information to personalize your plan.</p>
@@ -115,11 +122,9 @@
         </div>
     </div>
 
-    <!-- Chat View (Initially Hidden) -->
     <div id="chat-view-container" class="hidden flex-col h-full">
         <h1 class="text-2xl font-bold text-center text-gray-800 pb-4 border-b">Pulse AI Trainer</h1>
         <div id="chat-view" class="flex-grow overflow-y-auto p-4 space-y-4">
-            <!-- Messages will be injected here -->
         </div>
         <div class="mt-4 flex items-center space-x-2">
             <label for="message-input" class="sr-only">Your message</label>
@@ -136,19 +141,16 @@
         const API_URL = "http://127.0.0.1:8000/chat";
         let chatHistory = [];
 
-        // Views
         const onboardingView = document.getElementById('onboarding-view');
         const chatViewContainer = document.getElementById('chat-view-container');
         const chatView = document.getElementById('chat-view');
 
-        // Onboarding inputs and button
         const heightField = document.getElementById('height-field');
         const weightField = document.getElementById('weight-field');
         const ageField = document.getElementById('age-field');
         const ethnicityField = document.getElementById('ethnicity-field');
         const startChatBtn = document.getElementById('start-chat-btn');
 
-        // Chat inputs and button
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
 
@@ -161,11 +163,11 @@
             if (show) {
                 if (!indicator) {
                     const typingHtml = `
-                            <div id="typing-indicator" class="flex items-center space-x-2">
-                                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"><span class="pulse-loader"></span></div>
-                                <div class="p-3 bg-gray-200 rounded-2xl text-gray-700">Pulse is typing...</div>
-                            </div>
-                        `;
+                        <div id="typing-indicator" class="flex items-center space-x-2">
+                            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"><span class="pulse-loader"></span></div>
+                            <div class="p-3 bg-gray-200 rounded-2xl text-gray-700">Pulse is typing...</div>
+                        </div>
+                    `;
                     chatView.insertAdjacentHTML('beforeend', typingHtml);
                     scrollToBottom();
                 }
@@ -179,38 +181,42 @@
         const addMessage = (message, isUser) => {
             const alignClass = isUser ? 'justify-end' : 'justify-start';
             const colorClass = isUser ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800';
+
+            const content = isUser ? message : marked.parse(message);
+            const contentWrapperClass = isUser ? '' : 'ai-message-content';
+
             const messageHtml = `
-                    <div class="flex ${alignClass}">
-                        <div class="max-w-md p-3 rounded-2xl ${colorClass}">
-                            ${message}
-                        </div>
+                <div class="flex ${alignClass}">
+                    <div class="max-w-md p-3 rounded-2xl ${colorClass}">
+                        <div class="${contentWrapperClass}">${content}</div>
                     </div>
-                `;
+                </div>
+            `;
             chatView.insertAdjacentHTML('beforeend', messageHtml);
             scrollToBottom();
         };
 
         const addWorkoutPlan = (plan) => {
             const exercisesHtml = plan.exercises.map(ex => `
-                    <li class="flex items-center space-x-3">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                        <span><strong>${ex.name}:</strong> ${ex.sets} sets of ${ex.reps}, with ${ex.rest_period} rest.</span>
-                    </li>
-                `).join('');
+                <li class="flex items-center space-x-3">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <span><strong>${ex.name}:</strong> ${ex.sets} sets of ${ex.reps}, with ${ex.rest_period} rest.</span>
+                </li>
+            `).join('');
 
             const planHtml = `
-                    <div class="border border-green-400 bg-green-50 rounded-2xl p-6 my-4">
-                        <h2 class="text-2xl font-bold text-gray-800">${plan.title}</h2>
-                        <p class="text-gray-600 italic">Goal: ${plan.goal} (${plan.workout_type})</p>
-                        <hr class="my-4">
-                        <ul class="space-y-2">
-                            ${exercisesHtml}
-                        </ul>
-                        <hr class="my-4">
-                        <p class="font-bold">✨ Pulse's Note:</p>
-                        <p class="text-gray-700">${plan.final_note}</p>
-                    </div>
-                `;
+                <div class="border border-green-400 bg-green-50 rounded-2xl p-6 my-4">
+                    <h2 class="text-2xl font-bold text-gray-800">${plan.title}</h2>
+                    <p class="text-gray-600 italic">Goal: ${plan.goal} (${plan.workout_type})</p>
+                    <hr class="my-4">
+                    <ul class="space-y-2">
+                        ${exercisesHtml}
+                    </ul>
+                    <hr class="my-4">
+                    <p class="font-bold">✨ Pulse's Note:</p>
+                    <p class="text-gray-700">${plan.final_note}</p>
+                </div>
+            `;
             chatView.insertAdjacentHTML('beforeend', planHtml);
             scrollToBottom();
         };
@@ -272,7 +278,8 @@
             chatViewContainer.classList.remove('hidden');
             chatViewContainer.classList.add('flex');
 
-            addMessage("Great, thank you! I have your profile. How can I help you reach your goals?", false);
+            messageInput.value = `My goal is to get a personalized workout plan. My profile is: Height: ${height}, Weight: ${weight}, Age: ${age}, Ethnicity: ${ethnicity}.`;
+            sendMessage();
         });
 
         sendButton.addEventListener('click', sendMessage);
@@ -286,4 +293,3 @@
 </script>
 </body>
 </html>
-

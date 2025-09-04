@@ -1,6 +1,5 @@
-import uvicorn
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware  # Import the CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel as FastApiBaseModel
 from typing import List, Dict
 
@@ -10,10 +9,9 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain.agents import create_tool_calling_agent, AgentExecutor
-from .tools import search_tool, save_workout_plan  # Corrected relative import
+from .tools import search_tool, save_workout_plan
 from pathlib import Path
 
-# Load the API key from the .env file
 project_dir = Path(__file__).resolve().parent.parent
 dotenv_path = project_dir / ".env"
 load_dotenv(dotenv_path=dotenv_path)
@@ -24,9 +22,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# --- Add CORS Middleware ---
-# This allows your frontend (running on any origin "*") to communicate with this backend.
-origins = ["*"]  # For development, allow all origins. For production, you'd list specific domains.
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,8 +32,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# --- 1. Define the Structured Output (Pydantic Models) ---
 class Exercise(FastApiBaseModel):
     name: str
     sets: int
@@ -55,7 +49,6 @@ class ChatRequest(FastApiBaseModel):
     query: str
     chat_history: List[Dict[str, str]]
 
-# --- 2. Setup the "Brain" of the Agent ---
 llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.7)
 parser = PydanticOutputParser(pydantic_object=WorkoutPlan)
 tools = [search_tool, save_workout_plan]
@@ -100,7 +93,3 @@ async def chat_endpoint(request: ChatRequest):
         return {"type": "workout_plan", "data": workout.model_dump()}
     except Exception:
         return {"type": "message", "data": response["output"]}
-
-# --- To run the server ---
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
